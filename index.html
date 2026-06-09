@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Price Book">
+<meta name="theme-color" content="#2e6a68">
+<title>Grocery Price Book — Double Double Hustle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:       #3a4146;
+  --sage-lt:   #dadebb;
+  --sage-md:   #9eaf8b;
+  --teal:      #2e6a68;
+  --teal-dk:   #1d4a48;
+  --teal-lt:   #e8f3f2;
+  --blush:     #feb8b6;
+  --blush-lt:  #ffdfe0;
+  --cream:     #faf8f2;
+  --border:    #e4e0d5;
+  --muted:     #8a9098;
+  --white:     #fff;
+  --safe-top:  env(safe-area-inset-top, 0px);
+  --safe-bot:  env(safe-area-inset-bottom, 0px);
+
+  /* Store colours — cycle through these */
+  --s0: #2e6a68; --s1: #9eaf8b; --s2: #feb8b6;
+  --s3: #d4a843; --s4: #7a9eba; --s5: #b07aba;
+  --s6: #e08060; --s7: #60a880; --s8: #9070c0; --s9: #c0a060;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html,body { height:100%; font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); overflow:hidden; }
+
+/* ── HEADER ── */
+.app-header {
+  background: var(--teal);
+  padding: calc(var(--safe-top) + 12px) 16px 0;
+  position: relative; overflow: hidden;
+}
+.app-header::before {
+  content:''; position:absolute; right:-30px; top:-30px;
+  width:120px; height:120px; border-radius:50%;
+  background:rgba(255,255,255,0.05);
+}
+.header-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.header-brand { font-family:'Fraunces',serif; font-size:14px; color:rgba(255,255,255,0.7); letter-spacing:0.04em; }
+.header-title { font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:#fff; flex:1; }
+.header-title em { font-style:italic; color:var(--blush); font-weight:400; }
+
+/* ── TABS ── */
+.tab-bar { display:flex; border-top:1px solid rgba(255,255,255,0.12); }
+.tab-btn {
+  flex:1; padding:10px 4px 8px; font-size:11px; font-weight:500;
+  color:rgba(255,255,255,0.55); background:none; border:none;
+  border-bottom:2px solid transparent; cursor:pointer;
+  font-family:'DM Sans',sans-serif; letter-spacing:0.03em;
+  transition:all .15s; white-space:nowrap;
+}
+.tab-btn.active { color:#fff; border-bottom-color:var(--blush); }
+.tab-btn .tab-count {
+  display:inline-block; background:rgba(255,255,255,0.15);
+  border-radius:10px; padding:1px 6px; font-size:9px;
+  margin-left:4px; font-family:'DM Mono',monospace;
+}
+.tab-btn.active .tab-count { background:var(--blush); color:#fff; }
+
+/* ── PANELS ── */
+.panel { display:none; height:calc(100vh - var(--safe-top) - 88px); overflow-y:auto; }
+.panel.active { display:block; }
+
+/* ── PRICE BOOK PANEL ── */
+.pb-toolbar {
+  position:sticky; top:0; z-index:10;
+  background:var(--cream); border-bottom:1px solid var(--border);
+  padding:10px 14px; display:flex; gap:8px; align-items:center;
+}
+.pb-search {
+  flex:1; height:36px; padding:0 12px 0 32px;
+  border:1.5px solid var(--border); border-radius:20px;
+  font-size:13px; font-family:'DM Sans',sans-serif;
+  background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a9098' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+  outline:none; color:var(--ink);
+}
+.pb-search:focus { border-color:var(--teal); }
+.add-item-btn {
+  height:36px; padding:0 14px;
+  background:var(--teal); color:#fff; border:none; border-radius:20px;
+  font-size:12px; font-weight:500; cursor:pointer;
+  font-family:'DM Sans',sans-serif; white-space:nowrap;
+  display:flex; align-items:center; gap:5px;
+  box-shadow:0 2px 8px rgba(46,106,104,0.25);
+}
+
+/* ── ITEM CARD ── */
+.item-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:14px; margin:10px 12px; overflow:hidden;
+  box-shadow:0 1px 6px rgba(0,0,0,0.04);
+}
+.item-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px 8px; cursor:pointer;
+  background:var(--white);
+}
+.item-header:hover { background:var(--cream); }
+.item-num { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); min-width:24px; }
+.item-name-wrap { flex:1; min-width:0; }
+.item-name {
+  font-size:14px; font-weight:500; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.item-brand { font-size:11px; color:var(--muted); }
+.item-best {
+  display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex-shrink:0;
+}
+.best-store-pill {
+  font-size:10px; font-weight:500; padding:2px 8px;
+  border-radius:10px; color:#fff; white-space:nowrap;
+}
+.best-price { font-family:'DM Mono',monospace; font-size:11px; color:var(--teal); }
+.item-chevron { color:var(--muted); font-size:14px; margin-left:4px; transition:transform .2s; }
+.item-header.open .item-chevron { transform:rotate(180deg); }
+.item-add-btn {
+  background:none; border:1px solid var(--teal); border-radius:20px;
+  padding:3px 10px; font-size:11px; font-weight:500; color:var(--teal);
+  cursor:pointer; font-family:'DM Sans',sans-serif; white-space:nowrap;
+  transition:all .15s;
+}
+.item-add-btn:hover, .item-add-btn.added { background:var(--teal); color:#fff; }
+
+/* ── ITEM DETAIL (expanded) ── */
+.item-detail { display:none; border-top:1px solid var(--border); }
+.item-detail.open { display:block; }
+.detail-edit-row {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:8px; padding:10px 14px 6px;
+}
+.detail-field label { font-size:9px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:3px; }
+.detail-field input {
+  width:100%; height:32px; padding:0 10px;
+  border:1.5px solid var(--border); border-radius:8px;
+  font-size:13px; font-family:'DM Sans',sans-serif; color:var(--ink);
+  background:var(--cream); outline:none;
+}
+.detail-field input:focus { border-color:var(--teal); background:var(--white); }
+.detail-field input.green-field { border-color:rgba(158,175,139,0.6); background:#f6f8f2; }
+.detail-field input.green-field:focus { border-color:var(--sage-md); }
+
+/* store price rows */
+.store-prices { padding:6px 14px 12px; }
+.store-price-row {
+  display:grid;
+  grid-template-columns:12px 1fr 70px 60px 60px 80px 32px;
+  gap:6px; align-items:center;
+  padding:5px 0; border-bottom:1px solid var(--border);
+}
+.store-price-row:last-child { border-bottom:none; }
+.spr-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.spr-name { font-size:12px; color:var(--ink); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.spr-input {
+  width:100%; height:28px; padding:0 6px; text-align:right;
+  border:1.5px solid var(--border); border-radius:6px;
+  font-size:12px; font-family:'DM Mono',monospace; color:var(--ink);
+  background:var(--cream); outline:none;
+}
+.spr-input:focus { border-color:var(--teal); background:var(--white); }
+.spr-input.blue-field { border-color:rgba(122,158,186,0.5); background:#f4f7fa; }
+.spr-cpu { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); text-align:right; }
+.spr-cpu.best { color:var(--teal); font-weight:500; }
+.best-badge {
+  display:inline-block; font-size:9px; font-weight:600;
+  padding:1px 6px; border-radius:8px;
+  background:var(--teal-lt); color:var(--teal); white-space:nowrap;
+}
+.spr-del { background:none; border:none; color:#ddd; cursor:pointer; font-size:16px; padding:2px; }
+.spr-del:hover { color:#c07070; }
+.store-prices-header {
+  display:grid;
+  grid-template-columns:12px 1fr 70px 60px 60px 80px 32px;
+  gap:6px; padding:4px 0 2px;
+}
+.sph-label { font-size:9px; font-weight:500; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; text-align:right; }
+.sph-label:nth-child(2) { text-align:left; }
+.item-actions { display:flex; gap:8px; padding:4px 14px 12px; }
+.ia-btn {
+  flex:1; height:30px; border-radius:8px; font-size:11px; font-weight:500;
+  cursor:pointer; font-family:'DM Sans',sans-serif; border:none; transition:all .15s;
+}
+.ia-save { background:var(--teal); color:#fff; }
+.ia-save:hover { background:var(--teal-dk); }
+.ia-del { background:var(--blush-lt); color:#9a4040; border:1px solid var(--blush); }
+
+/* ── STORES PANEL ── */
+.stores-panel { padding:14px; }
+.store-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:14px; padding:14px 16px; margin-bottom:10px;
+  display:flex; align-items:center; gap:12px;
+}
+.store-color-dot { width:28px; height:28px; border-radius:50%; flex-shrink:0; cursor:pointer; border:2px solid rgba(0,0,0,0.08); }
+.store-name-input {
+  flex:1; height:36px; padding:0 12px;
+  border:1.5px solid var(--border); border-radius:10px;
+  font-size:14px; font-weight:500; color:var(--ink);
+  font-family:'DM Sans',sans-serif; background:var(--cream); outline:none;
+}
+.store-name-input:focus { border-color:var(--teal); background:var(--white); }
+.store-del-btn { background:none; border:none; color:#ccc; cursor:pointer; font-size:18px; padding:4px; }
+.store-del-btn:hover { color:#c07070; }
+.add-store-btn {
+  width:100%; height:44px; background:var(--white);
+  border:1.5px dashed var(--border); border-radius:14px;
+  font-size:13px; color:var(--muted); cursor:pointer;
+  font-family:'DM Sans',sans-serif; transition:all .15s;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.add-store-btn:hover { border-color:var(--teal); color:var(--teal); }
+.store-count-note { font-size:11px; color:var(--muted); text-align:center; margin-top:8px; }
+
+/* ── SHOPPING LIST PANEL ── */
+.list-toolbar {
+  position:sticky; top:0; z-index:10;
+  background:var(--cream); border-bottom:1px solid var(--border);
+  padding:10px 14px; display:flex; gap:8px; align-items:center;
+}
+.list-clear-btn {
+  height:34px; padding:0 14px;
+  background:var(--blush-lt); color:#9a4040;
+  border:1px solid var(--blush); border-radius:20px;
+  font-size:12px; font-weight:500; cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+}
+.list-summary {
+  flex:1; font-size:12px; color:var(--muted);
+}
+.list-empty {
+  text-align:center; padding:48px 24px;
+  font-family:'Fraunces',serif; font-size:16px;
+  color:var(--muted); font-style:italic; line-height:1.6;
+}
+.store-section { margin:10px 12px; }
+.store-section-head {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px 8px;
+  background:var(--white); border:1px solid var(--border);
+  border-radius:14px 14px 0 0; border-bottom:none;
+}
+.ssh-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.ssh-name { font-size:14px; font-weight:500; color:var(--ink); flex:1; }
+.ssh-count { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+.list-item-row {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 14px; background:var(--white);
+  border:1px solid var(--border); border-top:none;
+}
+.list-item-row:last-child { border-radius:0 0 14px 14px; }
+.li-check {
+  width:20px; height:20px; border-radius:5px;
+  border:1.5px solid var(--border); flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.li-check.checked { background:var(--sage-md); border-color:var(--sage-md); }
+.li-check.checked::after { content:'✓'; font-size:11px; color:#fff; }
+.li-name { flex:1; font-size:13px; color:var(--ink); }
+.li-name.checked { text-decoration:line-through; color:var(--muted); }
+.li-brand { font-size:11px; color:var(--muted); }
+.li-price { font-family:'DM Mono',monospace; font-size:12px; color:var(--teal); flex-shrink:0; }
+.li-remove { background:none; border:none; color:#ddd; cursor:pointer; font-size:14px; }
+.li-remove:hover { color:#c07070; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.45);
+  backdrop-filter:blur(4px); z-index:100;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+}
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal {
+  background:var(--white); border-radius:24px 24px 0 0;
+  padding:24px 20px calc(var(--safe-bot) + 20px);
+  width:100%; max-width:480px;
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-drag { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 18px; }
+.modal-title { font-family:'Fraunces',serif; font-size:19px; color:var(--ink); margin-bottom:5px; }
+.modal-sub { font-size:12px; color:var(--muted); margin-bottom:16px; line-height:1.5; }
+.modal-field { margin-bottom:12px; }
+.modal-field label { font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:4px; }
+.modal-input {
+  width:100%; height:44px; padding:0 14px;
+  border:1.5px solid var(--border); border-radius:12px;
+  font-size:14px; font-family:'DM Sans',sans-serif; color:var(--ink);
+  background:var(--cream); outline:none;
+}
+.modal-input:focus { border-color:var(--teal); background:var(--white); }
+.modal-save {
+  width:100%; height:48px; background:var(--teal); color:#fff;
+  border:none; border-radius:12px; font-size:15px; font-weight:500;
+  cursor:pointer; font-family:'DM Sans',sans-serif; margin-top:4px;
+}
+.modal-save:hover { background:var(--teal-dk); }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:calc(var(--safe-bot) + 70px); left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:#fff; padding:9px 18px; border-radius:20px;
+  font-size:12px; font-weight:500; opacity:0; transition:all .3s;
+  pointer-events:none; white-space:nowrap; z-index:200;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── EMPTY STATE ── */
+.pb-empty { text-align:center; padding:48px 24px; }
+.pb-empty-title { font-family:'Fraunces',serif; font-size:17px; color:var(--muted); font-style:italic; margin-bottom:8px; }
+.pb-empty-sub { font-size:12px; color:var(--muted); line-height:1.6; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="header-top">
+    <div>
+      <div class="header-brand">Double Double Hustle</div>
+      <div class="header-title">Grocery <em>Price Book</em></div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('pricebook',this)">
+      Price Book <span class="tab-count" id="itemCount">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('stores',this)">
+      Stores <span class="tab-count" id="storeCount">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('list',this)">
+      Shopping List <span class="tab-count" id="listCount">0</span>
+    </button>
+  </div>
+</div>
+
+<!-- PRICE BOOK PANEL -->
+<div id="panel-pricebook" class="panel active">
+  <div class="pb-toolbar">
+    <input type="search" class="pb-search" id="pbSearch" placeholder="Search items…" oninput="renderPriceBook()">
+    <button class="add-item-btn" onclick="openAddItemModal()">+ Add Item</button>
+  </div>
+  <div id="pbList"></div>
+</div>
+
+<!-- STORES PANEL -->
+<div id="panel-stores" class="panel">
+  <div class="stores-panel">
+    <div id="storesList"></div>
+    <button class="add-store-btn" onclick="addStore()" id="addStoreBtn">+ Add Store</button>
+    <div class="store-count-note" id="storeCountNote"></div>
+  </div>
+</div>
+
+<!-- SHOPPING LIST PANEL -->
+<div id="panel-list" class="panel">
+  <div class="list-toolbar">
+    <div class="list-summary" id="listSummary"></div>
+    <button class="list-clear-btn" onclick="clearList()">Clear list</button>
+  </div>
+  <div id="listContent"></div>
+</div>
+
+<!-- ADD ITEM MODAL -->
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title">Add item</div>
+    <div class="modal-sub">You can add pricing for each store after.</div>
+    <div class="modal-field">
+      <label>Item name</label>
+      <input type="text" class="modal-input" id="newItemName" placeholder="e.g. Homogenized Milk">
+    </div>
+    <div class="modal-field">
+      <label>Brand (optional)</label>
+      <input type="text" class="modal-input" id="newItemBrand" placeholder="e.g. Natrel, store brand…">
+    </div>
+    <button class="modal-save" onclick="confirmAddItem()">Add to price book</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ───────────────────────────────────────────────────────
+const STORE_KEY = 'ddh_pricebook_v1';
+const STORE_COLOURS = ['#2e6a68','#9eaf8b','#feb8b6','#d4a843','#7a9eba','#b07aba','#e08060','#60a880','#9070c0','#c0a060'];
+
+let state = {
+  stores: [
+    { id: 1, name: 'Superstore', color: '#2e6a68' },
+    { id: 2, name: 'Walmart',    color: '#9eaf8b' },
+    { id: 3, name: 'Sobeys',     color: '#feb8b6' },
+    { id: 4, name: 'Costco',     color: '#d4a843' },
+    { id: 5, name: 'Giant Tiger',color: '#7a9eba' },
+  ],
+  items: [
+    {
+      id: 1, name: 'Homogenized Milk', brand: '3.25%',
+      prices: [
+        { storeId:1, cost:6.49, size:4, unit:'L' },
+        { storeId:2, cost:5.97, size:4, unit:'L' },
+        { storeId:3, cost:6.79, size:4, unit:'L' },
+        { storeId:4, cost:14.99, size:9, unit:'L' },
+        { storeId:5, cost:5.99, size:4, unit:'L' },
+      ]
+    },
+    {
+      id: 2, name: 'Eggs', brand: 'Large White',
+      prices: [
+        { storeId:1, cost:5.49, size:12, unit:'pc' },
+        { storeId:2, cost:4.97, size:12, unit:'pc' },
+        { storeId:3, cost:5.99, size:12, unit:'pc' },
+        { storeId:4, cost:12.99, size:30, unit:'pc' },
+        { storeId:5, cost:4.49, size:12, unit:'pc' },
+      ]
+    },
+    {
+      id: 3, name: 'Bananas', brand: '',
+      prices: [
+        { storeId:1, cost:1.74, size:1, unit:'lbs' },
+        { storeId:2, cost:1.54, size:1, unit:'lbs' },
+        { storeId:3, cost:1.89, size:1, unit:'lbs' },
+        { storeId:5, cost:1.44, size:1, unit:'lbs' },
+      ]
+    },
+    {
+      id: 4, name: 'Laundry Detergent', brand: 'EX Pure Eco',
+      prices: [
+        { storeId:1, cost:12.99, size:40, unit:'load' },
+        { storeId:2, cost:11.97, size:40, unit:'load' },
+        { storeId:4, cost:24.99, size:110, unit:'load' },
+      ]
+    },
+    {
+      id: 5, name: 'Romaine Hearts', brand: '',
+      prices: [
+        { storeId:1, cost:4.99, size:3, unit:'pc' },
+        { storeId:2, cost:3.97, size:3, unit:'pc' },
+        { storeId:3, cost:5.49, size:3, unit:'pc' },
+        { storeId:4, cost:5.99, size:6, unit:'pc' },
+      ]
+    },
+    {
+      id: 6, name: 'Green Peppers', brand: '',
+      prices: [
+        { storeId:1, cost:1.99, size:1, unit:'pc' },
+        { storeId:2, cost:1.47, size:1, unit:'pc' },
+        { storeId:3, cost:2.29, size:1, unit:'pc' },
+        { storeId:5, cost:1.29, size:1, unit:'pc' },
+      ]
+    },
+  ],
+  list: [], // { itemId, storeId, checked }
+  nextItemId: 7,
+  nextStoreId: 6,
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function getStore(id) { return state.stores.find(s => s.id === id); }
+function getItem(id)  { return state.items.find(i => i.id === id); }
+
+function cpuStr(price) {
+  if (!price.cost || !price.size || price.size === 0) return '—';
+  const cpu = price.cost / price.size;
+  return '$' + cpu.toFixed(3) + '/' + (price.unit || 'unit');
+}
+
+function bestPrice(item) {
+  if (!item.prices || !item.prices.length) return null;
+  let best = null;
+  for (const p of item.prices) {
+    if (!p.cost || !p.size) continue;
+    const cpu = p.cost / p.size;
+    if (best === null || cpu < best.cpu) {
+      best = { ...p, cpu, store: getStore(p.storeId) };
+    }
+  }
+  return best;
+}
+
+function storeColor(id) {
+  const s = getStore(id);
+  return s ? s.color : '#ccc';
+}
+
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return '$' + Number(n).toFixed(2);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'list') renderList();
+  if (name === 'stores') renderStores();
+  if (name === 'pricebook') renderPriceBook();
+}
+
+// ── PRICE BOOK RENDER ─────────────────────────────────────────────
+let openItemId = null;
+
+function renderPriceBook() {
+  const q = document.getElementById('pbSearch').value.toLowerCase();
+  const items = state.items.filter(i =>
+    !q || i.name.toLowerCase().includes(q) || (i.brand||'').toLowerCase().includes(q)
+  );
+
+  document.getElementById('itemCount').textContent = state.items.length;
+
+  const container = document.getElementById('pbList');
+  if (!items.length) {
+    container.innerHTML = `<div class="pb-empty">
+      <div class="pb-empty-title">${q ? 'No items match that search.' : 'No items yet.'}</div>
+      <div class="pb-empty-sub">${q ? 'Try a different search.' : 'Tap "+ Add Item" to build your price book.'}</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = items.map((item, idx) => {
+    const best = bestPrice(item);
+    const isOpen = openItemId === item.id;
+    const inList = state.list.some(l => l.itemId === item.id);
+
+    const bestPill = best && best.store
+      ? `<div class="best-store-pill" style="background:${best.store.color}">${best.store.name}</div>
+         <div class="best-price">$${best.cpu.toFixed(3)}/${best.unit||'unit'}</div>`
+      : '<div class="best-price" style="color:var(--muted)">No prices yet</div>';
+
+    // Store price rows
+    const storeRows = state.stores.map(store => {
+      const p = item.prices.find(x => x.storeId === store.id) || { storeId:store.id, cost:'', size:'', unit:'' };
+      const isBest = best && best.storeId === store.id;
+      const cpu = (p.cost && p.size) ? (p.cost/p.size) : null;
+      return `<div class="store-price-row" id="spr-${item.id}-${store.id}">
+        <div class="spr-dot" style="background:${store.color}"></div>
+        <div class="spr-name">${store.name}</div>
+        <input class="spr-input blue-field" type="number" inputmode="decimal" placeholder="0.00"
+          value="${p.cost||''}" step="0.01" min="0"
+          onchange="updatePrice(${item.id},${store.id},'cost',this.value)"
+          oninput="updatePriceLive(${item.id},${store.id},'cost',this.value)">
+        <input class="spr-input blue-field" type="number" inputmode="decimal" placeholder="qty"
+          value="${p.size||''}" step="0.01" min="0"
+          onchange="updatePrice(${item.id},${store.id},'size',this.value)"
+          oninput="updatePriceLive(${item.id},${store.id},'size',this.value)">
+        <input class="spr-input blue-field" type="text" placeholder="unit"
+          value="${p.unit||''}"
+          onchange="updatePrice(${item.id},${store.id},'unit',this.value)">
+        <div class="spr-cpu ${isBest?'best':''}" id="cpu-${item.id}-${store.id}">
+          ${cpu ? '$'+cpu.toFixed(3)+'/'+(p.unit||'u') : '—'}
+          ${isBest ? '<br><span class="best-badge">★ Best</span>' : ''}
+        </div>
+        <button class="spr-del" onclick="clearStorePrice(${item.id},${store.id})">×</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="item-card" id="item-card-${item.id}">
+      <div class="item-header ${isOpen?'open':''}" onclick="toggleItem(${item.id})" id="ih-${item.id}">
+        <div class="item-num">${String(idx+1).padStart(2,'0')}</div>
+        <div class="item-name-wrap">
+          <div class="item-name">${item.name}</div>
+          ${item.brand ? `<div class="item-brand">${item.brand}</div>` : ''}
+        </div>
+        <div class="item-best">${bestPill}</div>
+        <button class="item-add-btn ${inList?'added':''}" onclick="event.stopPropagation();toggleListItem(${item.id})">
+          ${inList ? '✓ Added' : '+ List'}
+        </button>
+        <div class="item-chevron">▾</div>
+      </div>
+      <div class="item-detail ${isOpen?'open':''}" id="id-${item.id}">
+        <div class="detail-edit-row">
+          <div class="detail-field">
+            <label>Item name</label>
+            <input type="text" class="green-field" value="${item.name}"
+              onchange="updateItemField(${item.id},'name',this.value)">
+          </div>
+          <div class="detail-field">
+            <label>Brand</label>
+            <input type="text" class="green-field" value="${item.brand||''}" placeholder="optional"
+              onchange="updateItemField(${item.id},'brand',this.value)">
+          </div>
+        </div>
+        <div class="store-prices">
+          <div class="store-prices-header">
+            <div></div>
+            <div class="sph-label">Store</div>
+            <div class="sph-label">Cost ($)</div>
+            <div class="sph-label">Size</div>
+            <div class="sph-label">Unit</div>
+            <div class="sph-label">Per unit</div>
+            <div></div>
+          </div>
+          ${storeRows}
+        </div>
+        <div class="item-actions">
+          <button class="ia-btn ia-del" onclick="deleteItem(${item.id})">Delete item</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleItem(id) {
+  openItemId = openItemId === id ? null : id;
+  renderPriceBook();
+  if (openItemId) {
+    setTimeout(() => {
+      const card = document.getElementById('item-card-' + id);
+      if (card) card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 50);
+  }
+}
+
+function updateItemField(itemId, field, value) {
+  const item = getItem(itemId);
+  if (!item) return;
+  item[field] = value;
+  saveState();
+  renderPriceBook();
+}
+
+function updatePrice(itemId, storeId, field, value) {
+  const item = getItem(itemId);
+  if (!item) return;
+  let p = item.prices.find(x => x.storeId === storeId);
+  if (!p) {
+    p = { storeId, cost:'', size:'', unit:'' };
+    item.prices.push(p);
+  }
+  p[field] = field === 'unit' ? value : (parseFloat(value) || '');
+  saveState();
+  // Update just the CPU cell and best indicators without full re-render
+  updateCPUDisplay(item);
+}
+
+function updatePriceLive(itemId, storeId, field, value) {
+  updatePrice(itemId, storeId, field, value);
+}
+
+function updateCPUDisplay(item) {
+  const best = bestPrice(item);
+  state.stores.forEach(store => {
+    const p = item.prices.find(x => x.storeId === store.id);
+    const cpuEl = document.getElementById(`cpu-${item.id}-${store.id}`);
+    if (!cpuEl) return;
+    const isBest = best && best.storeId === store.id;
+    const cpu = (p && p.cost && p.size) ? p.cost/p.size : null;
+    cpuEl.className = `spr-cpu ${isBest?'best':''}`;
+    cpuEl.innerHTML = cpu
+      ? `$${cpu.toFixed(3)}/${p.unit||'u'}${isBest ? '<br><span class="best-badge">★ Best</span>' : ''}`
+      : '—';
+  });
+  // Update header pill
+  const ih = document.getElementById('ih-' + item.id);
+  if (ih) {
+    const bestWrap = ih.querySelector('.item-best');
+    if (bestWrap && best && best.store) {
+      bestWrap.innerHTML = `<div class="best-store-pill" style="background:${best.store.color}">${best.store.name}</div>
+        <div class="best-price">$${best.cpu.toFixed(3)}/${best.unit||'unit'}</div>`;
+    }
+  }
+}
+
+function clearStorePrice(itemId, storeId) {
+  const item = getItem(itemId);
+  if (!item) return;
+  item.prices = item.prices.filter(p => p.storeId !== storeId);
+  saveState();
+  renderPriceBook();
+}
+
+function deleteItem(id) {
+  if (!confirm('Remove this item from your price book?')) return;
+  state.items = state.items.filter(i => i.id !== id);
+  state.list = state.list.filter(l => l.itemId !== id);
+  openItemId = null;
+  saveState();
+  renderPriceBook();
+  updateBadges();
+}
+
+// ── ADD ITEM ──────────────────────────────────────────────────────
+function openAddItemModal() {
+  if (state.items.length >= 200) { showToast('Maximum 200 items reached'); return; }
+  document.getElementById('newItemName').value = '';
+  document.getElementById('newItemBrand').value = '';
+  document.getElementById('addItemModal').classList.add('open');
+  setTimeout(() => document.getElementById('newItemName').focus(), 350);
+}
+
+function confirmAddItem() {
+  const name = document.getElementById('newItemName').value.trim();
+  if (!name) { document.getElementById('newItemName').focus(); return; }
+  state.items.push({
+    id: state.nextItemId++,
+    name, brand: document.getElementById('newItemBrand').value.trim(),
+    prices: []
+  });
+  saveState();
+  document.getElementById('addItemModal').classList.remove('open');
+  openItemId = state.nextItemId - 1;
+  renderPriceBook();
+  updateBadges();
+  showToast('Item added — enter prices below ↓');
+  setTimeout(() => {
+    const card = document.getElementById('item-card-' + (state.nextItemId-1));
+    if (card) card.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 100);
+}
+
+// ── LIST TOGGLE ───────────────────────────────────────────────────
+function toggleListItem(itemId) {
+  const item = getItem(itemId);
+  if (!item) return;
+  const inList = state.list.some(l => l.itemId === itemId);
+  if (inList) {
+    state.list = state.list.filter(l => l.itemId !== itemId);
+    showToast('Removed from list');
+  } else {
+    const best = bestPrice(item);
+    state.list.push({
+      itemId,
+      storeId: best ? best.storeId : null,
+      checked: false
+    });
+    showToast(`Added to list${best && best.store ? ' — best at ' + best.store.name : ''}`);
+  }
+  saveState();
+  updateBadges();
+  renderPriceBook();
+}
+
+// ── STORES RENDER ─────────────────────────────────────────────────
+function renderStores() {
+  document.getElementById('storeCount').textContent = state.stores.length;
+  const container = document.getElementById('storesList');
+  container.innerHTML = state.stores.map((store, i) => `
+    <div class="store-card" id="store-card-${store.id}">
+      <div class="store-color-dot" style="background:${store.color}"
+        onclick="cycleColor(${store.id})" title="Tap to change colour"></div>
+      <input type="text" class="store-name-input" value="${store.name}"
+        onchange="updateStoreName(${store.id},this.value)"
+        placeholder="Store name">
+      <button class="store-del-btn" onclick="deleteStore(${store.id})">×</button>
+    </div>
+  `).join('');
+
+  const addBtn = document.getElementById('addStoreBtn');
+  const note = document.getElementById('storeCountNote');
+  if (state.stores.length >= 10) {
+    addBtn.style.display = 'none';
+    note.textContent = 'Maximum 10 stores reached.';
+  } else {
+    addBtn.style.display = 'flex';
+    note.textContent = `${state.stores.length} of 10 stores · tap colour dot to change colour`;
+  }
+}
+
+function updateStoreName(id, name) {
+  const store = getStore(id);
+  if (store) { store.name = name; saveState(); }
+}
+
+function cycleColor(id) {
+  const store = getStore(id);
+  if (!store) return;
+  const idx = STORE_COLOURS.indexOf(store.color);
+  store.color = STORE_COLOURS[(idx + 1) % STORE_COLOURS.length];
+  saveState();
+  renderStores();
+  renderPriceBook();
+}
+
+function addStore() {
+  if (state.stores.length >= 10) return;
+  const usedColors = state.stores.map(s => s.color);
+  const color = STORE_COLOURS.find(c => !usedColors.includes(c)) || STORE_COLOURS[state.stores.length % STORE_COLOURS.length];
+  state.stores.push({ id: state.nextStoreId++, name: 'New Store', color });
+  saveState();
+  renderStores();
+}
+
+function deleteStore(id) {
+  if (state.stores.length <= 1) { showToast("Can't delete the last store"); return; }
+  if (!confirm('Remove this store? Prices for this store will also be removed.')) return;
+  state.stores = state.stores.filter(s => s.id !== id);
+  state.items.forEach(item => { item.prices = item.prices.filter(p => p.storeId !== id); });
+  state.list = state.list.filter(l => l.storeId !== id);
+  saveState();
+  renderStores();
+  renderPriceBook();
+}
+
+// ── SHOPPING LIST RENDER ──────────────────────────────────────────
+function renderList() {
+  document.getElementById('listCount').textContent = state.list.length;
+  const container = document.getElementById('listContent');
+
+  if (!state.list.length) {
+    container.innerHTML = `<div class="list-empty">Your list is empty.<br><em>Tap "+ List" on any item in the Price Book.</em></div>`;
+    document.getElementById('listSummary').textContent = '';
+    return;
+  }
+
+  // Group by store
+  const byStore = {};
+  state.list.forEach(l => {
+    const key = l.storeId || 'none';
+    if (!byStore[key]) byStore[key] = [];
+    byStore[key].push(l);
+  });
+
+  // Summary
+  const total = state.list.reduce((sum, l) => {
+    const item = getItem(l.itemId);
+    const best = item ? bestPrice(item) : null;
+    return sum + (best ? best.cost : 0);
+  }, 0);
+  const checked = state.list.filter(l => l.checked).length;
+  document.getElementById('listSummary').textContent =
+    `${checked}/${state.list.length} items · est. ${fmt(total)}`;
+
+  let html = '';
+  Object.entries(byStore).forEach(([storeKey, listItems]) => {
+    const store = storeKey === 'none' ? null : getStore(parseInt(storeKey));
+    const color = store ? store.color : '#ccc';
+    const storeName = store ? store.name : 'Best store not set';
+
+    html += `<div class="store-section">
+      <div class="store-section-head">
+        <div class="ssh-dot" style="background:${color}"></div>
+        <div class="ssh-name">${storeName}</div>
+        <div class="ssh-count">${listItems.length} item${listItems.length!==1?'s':''}</div>
+      </div>`;
+
+    listItems.forEach((l, i) => {
+      const item = getItem(l.itemId);
+      if (!item) return;
+      const best = bestPrice(item);
+      const isLast = i === listItems.length - 1;
+      html += `<div class="list-item-row" style="${isLast?'border-radius:0 0 14px 14px':''}">
+        <div class="li-check ${l.checked?'checked':''}" onclick="toggleCheck(${l.itemId})"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="li-name ${l.checked?'checked':''}">${item.name}</div>
+          ${item.brand ? `<div class="li-brand">${item.brand}</div>` : ''}
+        </div>
+        <div class="li-price">${best ? fmt(best.cost) : '—'}</div>
+        <button class="li-remove" onclick="removeFromList(${l.itemId})">✕</button>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function toggleCheck(itemId) {
+  const l = state.list.find(x => x.itemId === itemId);
+  if (l) { l.checked = !l.checked; saveState(); renderList(); }
+}
+
+function removeFromList(itemId) {
+  state.list = state.list.filter(l => l.itemId !== itemId);
+  saveState();
+  updateBadges();
+  renderList();
+  renderPriceBook();
+}
+
+function clearList() {
+  if (!state.list.length) return;
+  if (!confirm('Clear the entire shopping list?')) return;
+  state.list = [];
+  saveState();
+  updateBadges();
+  renderList();
+  renderPriceBook();
+}
+
+// ── BADGES ────────────────────────────────────────────────────────
+function updateBadges() {
+  document.getElementById('itemCount').textContent  = state.items.length;
+  document.getElementById('storeCount').textContent = state.stores.length;
+  document.getElementById('listCount').textContent  = state.list.length;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── MODAL CLOSE ON BACKDROP ───────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+document.getElementById('newItemName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('newItemBrand').focus();
+});
+document.getElementById('newItemBrand').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmAddItem();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadState();
+renderPriceBook();
+updateBadges();
+</script>
+</body>
+</html>
